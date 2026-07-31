@@ -7,6 +7,7 @@ from clients.mixins import OrganizationAndCreatorScopedCreateMixin, Organization
 from clients.models import Client, Interaction, Lead
 from clients.serializers import ClientSerializer, InteractionSerializer, LeadSerializer
 from clients.utils import ClientUtils
+from core.permissions import IsOrganizationScoped
 from core.utils import CoreUtils
 from core.pagination import DefaultPagination
 from core import constants as const
@@ -16,10 +17,8 @@ from core.responses import error_response, success_response
 # Api test is not done
 class ClientViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
     serializer_class = ClientSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsOrganizationScoped]
     pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["status", "owner"]
     ordering_fields = ["created_at", "updated_at", "name"]
     ordering = ["-created_at"]
 
@@ -99,10 +98,8 @@ class ClientViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 class LeadViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
     serializer_class = LeadSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsOrganizationScoped]
     pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["status", "priority", "owner", "client"]
     ordering_fields = ["created_at", "updated_at", "name", "next_follow_up_at"]
     ordering = ["-created_at"]
 
@@ -143,7 +140,10 @@ class LeadViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
+                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
+                                status=status.HTTP_400_BAD_REQUEST)
             self.perform_create(serializer)
             return Response(success_response(data={}, message=const.LEAD_CREATED_SUCCESSFULLY),
                             status=status.HTTP_201_CREATED)
@@ -156,7 +156,10 @@ class LeadViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
             partial = kwargs.pop("partial", True)
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
+                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
+                                status=status.HTTP_400_BAD_REQUEST)
             self.perform_update(serializer)
             return Response(success_response(data={}, message=const.LEAD_UPDATED_SUCCESSFULLY),
                             status=status.HTTP_200_OK)
@@ -177,10 +180,8 @@ class LeadViewSet(OrganizationScopedCreateMixin,viewsets.ModelViewSet):
 
 class InteractionViewSet(OrganizationAndCreatorScopedCreateMixin,viewsets.ModelViewSet):
     serializer_class = InteractionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated,IsOrganizationScoped]
     pagination_class = DefaultPagination
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ["interaction_type", "client", "lead", "created_by"]
     ordering_fields = ["created_at", "updated_at", "occurred_at"]
     ordering = ["-occurred_at", "-created_at"]
 
@@ -212,7 +213,10 @@ class InteractionViewSet(OrganizationAndCreatorScopedCreateMixin,viewsets.ModelV
     def create(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
+                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
+                                status=status.HTTP_400_BAD_REQUEST)
             self.perform_create(serializer)
             return Response(success_response(data={}, message=const.INTERACTION_CREATED_SUCCESSFULLY),
                             status=status.HTTP_201_CREATED)
@@ -225,7 +229,10 @@ class InteractionViewSet(OrganizationAndCreatorScopedCreateMixin,viewsets.ModelV
             partial = kwargs.pop("partial", True)
             instance = self.get_object()
             serializer = self.get_serializer(instance, data=request.data, partial=partial)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
+                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
+                                status=status.HTTP_400_BAD_REQUEST)
             self.perform_update(serializer)
             return Response(success_response(data={}, message=const.INTERACTION_UPDATED_SUCCESSFULLY),
                             status=status.HTTP_200_OK)

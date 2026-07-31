@@ -1,0 +1,8 @@
+from rest_framework.routers import DefaultRouter
+from .views import NoteViewSet, TaskViewSet
+
+router = DefaultRouter()
+router.register(r"tasks", TaskViewSet, basename="task")
+router.register(r"notes", NoteViewSet, basename="note")
+
+urlpatterns = router.urls
