@@ -28,4 +28,29 @@ class AccountUtils:
             queryset = queryset.filter(is_active=is_active.lower() == "true")
 
         return queryset
+
+    @staticmethod
+    def membership_filter(queryset, params):
+        search = params.get("search")
+        role = params.get("role")
+        is_active = params.get("is_active")
+        organization = params.get("organization")
+
+        if search:
+            queryset = queryset.filter(
+                Q(user__email__icontains=search) |
+                Q(user__username__icontains=search) |
+                Q(organization__name__icontains=search)
+            )
+
+        if role:
+            queryset = queryset.filter(role=role)
+
+        if is_active in ["true", "false"]:
+            queryset = queryset.filter(is_active=is_active.lower() == "true")
+
+        if organization:
+            queryset = queryset.filter(organization_id=organization)
+
+        return queryset
         

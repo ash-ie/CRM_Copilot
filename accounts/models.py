@@ -46,6 +46,7 @@ class Membership(TimeStampedModel):
     default=Role.STAFF,
     )
     is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

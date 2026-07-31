@@ -43,10 +43,12 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'core',
+    'clients',
 
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
-    "corsheaders"
+    "corsheaders",
+    "django_filters"
 ]
 
 MIDDLEWARE = [

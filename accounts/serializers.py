@@ -1,6 +1,6 @@
 from accounts.models import Membership, Organization, User
 from rest_framework import serializers
-
+from core import constants as const
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -39,6 +39,7 @@ class MembershipSerializer(serializers.ModelSerializer):
         source="user",
         write_only=True,
     )
+
     organization_id = serializers.PrimaryKeyRelatedField(
         queryset=Organization.objects.all(),
         source="organization",
@@ -63,3 +64,30 @@ class MembershipSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = ["id", "joined_at", "created_at", "updated_at"]
+
+    def validate_user_id(self, user):
+        if getattr(user, "is_deleted", False):
+            raise serializers.ValidationError(
+                const.SELECTED_USER_DELETED
+            )
+
+        if not user.is_active:
+            raise serializers.ValidationError(
+                const.SELECTED_USER_INACTIVE
+            )
+
+        return user
+
+
+    def validate_organization_id(self, organization):
+        if getattr(organization, "is_deleted", False):
+            raise serializers.ValidationError(
+                const.SELECTED_ORGANIZATION_DELETED
+            )
+
+        if not organization.is_active:
+            raise serializers.ValidationError(
+                const.SELECTED_ORGANIZATION_INACTIVE
+            )
+
+        return organization
