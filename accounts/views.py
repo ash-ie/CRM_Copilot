@@ -175,7 +175,7 @@ class MembershipListCreateView(generics.ListCreateAPIView):
     queryset = Membership.objects.select_related("user", "organization")\
         .filter(is_deleted=False)
     serializer_class = MembershipSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     pagination_class = DefaultPagination
 
     def list(self, request, *args, **kwargs):
@@ -216,7 +216,7 @@ class MembershipDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Membership.objects.select_related("user", "organization")\
         .filter(is_deleted=False)
     serializer_class = MembershipSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def retrieve(self, request, *args, **kwargs):
         try:
