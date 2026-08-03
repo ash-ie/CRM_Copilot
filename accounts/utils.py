@@ -3,31 +3,44 @@ from django.db.models import Q
 
 class AccountUtils:
     @staticmethod
-    def user_filter(queryset, params):
-        search = params.get("search")
-
-        if search:
-            queryset = queryset.filter(
-                Q(email__icontains=search) |
-                Q(username__icontains=search) 
-            )
-        return queryset
-
-    @staticmethod
     def organization_filter(queryset, params):
         search = params.get("search")
+        is_active = params.get("is_active")
+    
+        if search:
+            queryset = queryset.filter(Q(name__icontains=search) | Q(slug__icontains=search))
+    
+        if is_active:
+            queryset = queryset.filter(is_active=is_active)
+    
+        return queryset.order_by("-id")
+    
+    @staticmethod
+    def user_filter(queryset, params):
+        search = params.get("search")
+        organization = params.get("organization")
+        role = params.get("role")
         is_active = params.get("is_active")
 
         if search:
             queryset = queryset.filter(
-                Q(name__icontains=search) |
-                Q(slug__icontains=search)
+                Q(email__icontains=search) | 
+                Q(username__icontains=search) |
+                Q(first_name__icontains=search) |  
+                Q(last_name__icontains=search) |  
+                Q(phone_number__icontains=search)
             )
 
-        if is_active in ["true", "false"]:
-            queryset = queryset.filter(is_active=is_active.lower() == "true")
+        if organization:
+            queryset = queryset.filter(organization_id=organization)
 
-        return queryset
+        if role:
+            queryset = queryset.filter(role=role)
+
+        if is_active:
+            queryset = queryset.filter(is_active=is_active)
+
+        return queryset.order_by("-id")
 
     @staticmethod
     def membership_filter(queryset, params):

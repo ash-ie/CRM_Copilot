@@ -1,8 +1,19 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from core.models import TimeStampedModel
 
 # Create your models here.
+class TaskQuerySet(models.QuerySet):
+    def overdue(self):
+        return self.filter(
+            due_date__lt=timezone.now(),
+            is_deleted=False,
+        ).exclude(
+            is_completed=True
+        ).exclude(
+            status__in=[Task.Status.COMPLETED, Task.Status.CANCELLED]
+        )
 class Task(TimeStampedModel):
     class Priority(models.IntegerChoices):
         LOW = 1, "Low"
@@ -52,11 +63,11 @@ class Task(TimeStampedModel):
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    priority = models.TextField(
+    priority = models.PositiveIntegerField(
         choices=Priority.choices,
         default=Priority.MEDIUM,
     )
-    status = models.TextField(
+    status = models.PositiveIntegerField(
         choices=Status.choices,
         default=Status.PENDING,
     )
@@ -75,6 +86,18 @@ class Task(TimeStampedModel):
 
     def __str__(self):
         return self.title
+
+    @property
+    def is_overdue(self):
+        if not self.due_date:
+            return False
+        if self.is_deleted:
+            return False
+        if self.is_completed:
+            return False
+        if self.status in [self.Status.COMPLETED, self.Status.CANCELLED]:
+            return False
+        return self.due_date < timezone.now()
 
 class Note(TimeStampedModel):
     organization = models.ForeignKey(
@@ -109,6 +132,7 @@ class Note(TimeStampedModel):
 
     title = models.CharField(max_length=255)
     content = models.TextField()
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

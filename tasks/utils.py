@@ -1,4 +1,7 @@
 from django.db.models import Q
+from django.utils import timezone
+
+from tasks.models import Task
 
 
 class TaskUtils:
@@ -11,6 +14,7 @@ class TaskUtils:
         client = params.get("client")
         lead = params.get("lead")
         due_date = params.get("due_date")
+        overdue = params.get("overdue")
 
         if search:
             queryset = queryset.filter(
@@ -35,6 +39,9 @@ class TaskUtils:
 
         if due_date:
             queryset = queryset.filter(due_date__date=due_date)
+
+        if overdue:
+            queryset = queryset.overdue()
 
         return queryset
 

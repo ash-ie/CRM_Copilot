@@ -4,6 +4,7 @@ from tasks.models import Note, Task
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    is_overdue = serializers.BooleanField(read_only=True)
     class Meta:
         model = Task
         fields = [
@@ -20,10 +21,11 @@ class TaskSerializer(serializers.ModelSerializer):
             "due_date",
             "completed_at",
             "is_completed",
+            "is_overdue",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id","created_by","is_overdue","created_at", "updated_at"]
 
     def validate(self, attrs):
         client = attrs.get("client", getattr(self.instance, "client", None))

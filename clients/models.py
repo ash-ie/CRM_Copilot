@@ -1,6 +1,8 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from accounts.models import Organization
+from clients.lead_scoring import calculate_lead_score
 from core.models import TimeStampedModel
 from core import constants as const
 # Create your models here.
@@ -102,6 +104,9 @@ class Lead(TimeStampedModel):
     last_contacted_at = models.DateTimeField(null=True, blank=True)
     next_follow_up_at = models.DateTimeField(null=True, blank=True)
     is_deleted = models.BooleanField(default=False)
+    score = models.PositiveIntegerField(default=0, db_index=True)
+    score_updated_at = models.DateTimeField(null=True, blank=True)
+    score_breakdown = models.JSONField(default=dict, blank=True)
     class Meta:
         ordering = ["-created_at"]
         indexes = [
@@ -109,6 +114,7 @@ class Lead(TimeStampedModel):
             models.Index(fields=["organization", "priority"]),
             models.Index(fields=["organization", "name"]),
             models.Index(fields=["organization", "email"]),
+            models.Index(fields=["organization", "score"]),
         ]
         constraints = [
             models.UniqueConstraint(
@@ -119,6 +125,40 @@ class Lead(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    def recalculate_score(self, save=True):
+        score, breakdown, priority = calculate_lead_score(self)
+        self.score = score
+        self.score_breakdown = breakdown
+        self.priority = priority
+        self.score_updated_at = timezone.now()
+
+        if save:
+            Lead.objects.filter(pk=self.pk).update(
+                score=self.score,
+                score_breakdown=self.score_breakdown,
+                priority=self.priority,
+                score_updated_at=self.score_updated_at,
+            )
+        return score, breakdown, priority
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        scoring_fields = {
+            "name", "email", "phone", "company_name", "source",
+            "status", "priority", "value", "owner", "notes",
+            "last_contacted_at", "next_follow_up_at", "is_deleted",
+        }
+
+        super().save(*args, **kwargs)
+
+        should_recalculate = (
+            update_fields is None
+            or bool(scoring_fields.intersection(update_fields))
+        )
+
+        if should_recalculate:
+            self.recalculate_score(save=True)
 
 class Interaction(TimeStampedModel):
     class Type(models.IntegerChoices):

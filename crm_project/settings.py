@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'core',
     'clients',
     'tasks',
+    'agentic',
 
     "rest_framework",
     "rest_framework_simplejwt.token_blacklist",

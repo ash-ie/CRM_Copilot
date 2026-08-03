@@ -2,9 +2,9 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework import status
 from core.pagination import DefaultPagination
-from core.permissions import IsOrganizationScoped
 from core.responses import error_response, success_response
 from core import constants as const
 from core.utils import CoreUtils
@@ -16,7 +16,7 @@ from tasks.utils import TaskUtils
 # Create your views here.
 class TaskViewSet(OrganizationAndCreatorScopedCreateMixin,viewsets.ModelViewSet):
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated,IsOrganizationScoped]
+    permission_classes = [IsAuthenticated]
     pagination_class = DefaultPagination
 
     def get_queryset(self):
@@ -91,9 +91,20 @@ class TaskViewSet(OrganizationAndCreatorScopedCreateMixin,viewsets.ModelViewSet)
             return Response(error_response(message=const.TASKS_DELETION_FAILED,errors=str(e)),
                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=["get"])
+    def overdue(self, request, *args, **kwargs):
+        try:
+            queryset = self.get_queryset().overdue()
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(success_response(data=serializer.data, message=const.OVERDUE_TASKS_RETRIEVED_SUCCESSFULLY),
+                            status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(error_response(message=const.OVERDUE_TASKS_RETRIEVAL_FAILED, errors=str(e)),
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 class NoteViewSet(OrganizationAndCreatorScopedCreateMixin, viewsets.ModelViewSet):
     serializer_class = NoteSerializer
-    permission_classes = [IsAuthenticated, IsOrganizationScoped]
+    permission_classes = [IsAuthenticated]
     pagination_class = DefaultPagination
 
     def get_queryset(self):
@@ -169,4 +180,6 @@ class NoteViewSet(OrganizationAndCreatorScopedCreateMixin, viewsets.ModelViewSet
                             status=status.HTTP_200_OK)
         except Exception as e:
             return Response(error_response(message=const.NOTE_DELETION_FAILED,errors=str(e)),
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)    
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR) 
+
+   
