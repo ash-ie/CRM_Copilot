@@ -13,6 +13,21 @@ from core.pagination import DefaultPagination
 from core.responses import error_response, success_response
 
 # Create your views here.
+class LoginAPIView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if not serializer.is_valid():
+                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
+                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
+                                status=status.HTTP_400_BAD_REQUEST)
+            return Response(success_response(data=serializer.validated_data,message=const.LOGIN_SUCCESS),
+                            status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(error_response(message=const.LOGIN_FAILURE,errors=str(e)),
+                            status=status.HTTP_400_BAD_REQUEST)  
 class OrganizationListCreateView(generics.ListCreateAPIView):
     queryset = Organization.objects.filter(is_deleted=False)
     serializer_class = OrganizationSerializer
@@ -266,20 +281,4 @@ class RegisterAPIView(generics.CreateAPIView):
             return Response(success_response(data={},message=const.REGISTER_SUCCESSFULL))
         except Exception as e:
             return Response(error_response(message=const.REGISTER_FAILED,errors=str(e)),
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-class LoginAPIView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
-
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
-            if not serializer.is_valid():
-                formatted_errors = CoreUtils.format_validation_errors(serializer.errors)
-                return Response(error_response(message=const.VALIDATION_FAILURE,errors=formatted_errors),
-                                status=status.HTTP_400_BAD_REQUEST)
-            return Response(success_response(data=serializer.validated_data,message=const.LOGIN_SUCCESS),
-                            status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response(error_response(message=const.LOGIN_FAILURE,errors=str(e)),
-                            status=status.HTTP_400_BAD_REQUEST)         
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)       

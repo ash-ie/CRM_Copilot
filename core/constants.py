@@ -1,5 +1,6 @@
 # Login
 INVALID_CREDENTIALS = "Invalid email or password."
+INVALID_IDENTIFIER = "Invalid username/email or password."
 LOGIN_SUCCESS = "Login successfull."
 LOGIN_FAILURE = "Login failed."
 

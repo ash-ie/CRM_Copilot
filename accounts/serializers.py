@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate
 from django.db import transaction
+from django.db.models import Q
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 from accounts.models import Membership, Organization, User
 from rest_framework import serializers
 from core import constants as const
@@ -247,46 +249,59 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         return user
 
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    email = serializers.EmailField()
+class CustomTokenObtainPairSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
     password = serializers.CharField(write_only=True)
 
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        token["email"] = user.email
-        token["first_name"] = getattr(user, "first_name", "")
-        token["last_name"] = getattr(user, "last_name", "")
-        return token
-
     def validate(self, attrs):
+        identifier = attrs.get("identifier")
+        password = attrs.get("password")
 
-        data = super().validate(attrs)
-        user = self.user
+        # Get ONE user object
+        user = User.objects.filter(Q(username=identifier) |Q(email=identifier)).first()
+
+        if user is None:
+            raise serializers.ValidationError({"login": const.INVALID_IDENTIFIER})
+
+        # Since your User model has:
+        # USERNAME_FIELD = "email"
+        user = authenticate(email=user.email,password=password)
+
+        if user is None:
+            raise serializers.ValidationError({
+                "login": const.INVALID_CREDENTIALS
+            })
+
+        refresh = RefreshToken.for_user(user)
 
         membership = (
             Membership.objects.filter(
-                user=user, 
-                is_active=True, 
-                is_deleted=False, 
-                organization__is_active=True, 
+                user=user,
+                is_active=True,
+                is_deleted=False,
+                organization__is_active=True,
                 organization__is_deleted=False
             )
             .select_related("organization")
             .first()
         )
 
-        data["user"] = {
-            "id": user.id,
-            "email": user.email,
-            "first_name": getattr(user, "first_name", ""),
-            "last_name": getattr(user, "last_name", ""),
-        }
+        return {
+            "refresh": str(refresh),
+            "access": str(refresh.access_token),
 
-        data["membership"] = {
-            "organization_id": membership.organization_id if membership else None,
-            "organization_name": membership.organization.name if membership else None,
-            "role": membership.role if membership else None,
-        }
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": getattr(user, "first_name", ""),
+                "last_name": getattr(user, "last_name", ""),
+            },
 
-        return data
+            "membership": {
+                "organization_id": membership.organization_id if membership else None,
+                "organization_name": membership.organization.name if membership else None,
+                "role": membership.role if membership else None,
+                "role_name": membership.get_role_display() if membership else None
+            }
+        }
